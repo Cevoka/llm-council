@@ -2,6 +2,7 @@
 
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -15,6 +16,11 @@ def ensure_data_dir():
 
 def get_conversation_path(conversation_id: str) -> str:
     """Get the file path for a conversation."""
+    # Security: only accept canonical UUIDs (blocks path traversal)
+    try:
+        conversation_id = str(uuid.UUID(conversation_id))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("Invalid conversation id")
     return os.path.join(DATA_DIR, f"{conversation_id}.json")
 
 

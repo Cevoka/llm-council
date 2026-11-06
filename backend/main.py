@@ -50,6 +50,16 @@ class Conversation(BaseModel):
     messages: List[Dict[str, Any]]
 
 
+def _load_or_404(conversation_id: str):
+    try:
+        conversation = storage.get_conversation(conversation_id)
+    except ValueError:
+        conversation = None
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation
+
+
 @app.get("/")
 async def root():
     """Health check endpoint."""
@@ -73,9 +83,7 @@ async def create_conversation(request: CreateConversationRequest):
 @app.get("/api/conversations/{conversation_id}", response_model=Conversation)
 async def get_conversation(conversation_id: str):
     """Get a specific conversation with all its messages."""
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation = _load_or_404(conversation_id)
     return conversation
 
 
@@ -86,9 +94,7 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
     Returns the complete response with all stages.
     """
     # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation = _load_or_404(conversation_id)
 
     # Check if this is the first message
     is_first_message = len(conversation["messages"]) == 0
@@ -130,9 +136,7 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
     Returns Server-Sent Events as each stage completes.
     """
     # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation = _load_or_404(conversation_id)
 
     # Check if this is the first message
     is_first_message = len(conversation["messages"]) == 0
@@ -196,4 +200,4 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="127.0.0.1", port=8001)
